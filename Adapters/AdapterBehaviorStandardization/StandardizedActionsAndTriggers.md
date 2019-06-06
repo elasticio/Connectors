@@ -1,25 +1,31 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 28.03.2019
+**Version Publish Date:** 06.06.2019
 
-**Semantic Version of Document:** 2.1.0
+**Semantic Version of Document:** 2.2.0
 
 ## Table of Contents
 
-- [Actions](#actions)
-  - [Upsert Object](#upsert-object)
-  - [Lookup Object (at most 1)](#lookup-object-at-most-1)
-  - [Lookup Objects (Plural)](#lookup-objects-plural)
-  - [Delete Object](#delete-object)
-  - [Update Object](#update-object)
-  - [Create Object](#create-object)
-  - [Linking/Unlinking Objects](#linkingunlinking-objects)
-  - [Execute Query or Statement in Query Language](#execute-query-or-statement-in-query-language)
-  - [Perform Action/Evaluate Function](#perform-actionevaluate-function)
-- [Triggers](#triggers)
-  - [Get New and Updated Objects Polling](#get-new-and-updated-objects-polling)
-  - [Webhooks](#webhooks)
-  - [Bulk Extract](#bulk-extract)
+  * [Actions](#actions)
+    + [Upsert Object](#upsert-object)
+    + [Lookup Object (at most 1)](#lookup-object-at-most-1)
+    + [Lookup Objects (Plural)](#lookup-objects-plural)
+    + [Delete Object](#delete-object)
+    + [Make Dumb Request](#make-dumb-request)
+    + [Lookup Set Of Objects By Unique Criteria](#lookup-set-of-objects-by-unique-criteria)
+    + [Update Object](#update-object)
+    + [Create Object](#create-object)
+    + [Linking/Unlinking Objects](#linkingunlinking-objects)
+    + [Execute Query in Query Language](#execute-query-in-query-language)
+    + [Execute Statement in Query Language](#execute-statement-in-query-language)
+    + [Perform Action/Evaluate Function](#perform-actionevaluate-function)
+    + [Assert Option(s) in Set(s)](#assert-options-in-sets)
+    + [Merge Objects](#merge-objects)
+  * [Batch Actions](#batch-actions)
+  * [Triggers](#triggers)
+    + [Get New and Updated Objects Polling](#get-new-and-updated-objects-polling)
+    + [Webhooks](#webhooks)
+    + [Bulk Extract](#bulk-extract)
 
 It is important to define common rules on how an adapter responds to changes
 and performs actions on generic domain objects.  If adapters follow
@@ -82,11 +88,11 @@ adapters which are developed by different developers.
 
     function upsertObjectByUniqueCriteria(obj, uniqueCriteria) {
       // Ensure unique criteria are all populated (unless ID)
-      // If criteira is th the object's ID and it is split across more than one field, we should check
+      // If criteria is th the object's ID and it is split across more than one field, we should check
       // that either all ID fields are populated or that none are.  Otherwise we
       // should throw an exception.
 
-      const objectsToUpdate = GetObjectsByCritieria(uniqueCriteria);   // Usually GET verb
+      const objectsToUpdate = GetObjectsByCriteria(uniqueCriteria);   // Usually GET verb
       if(objectsToUpdate.length == 0) {
         const createdObject = CreateObject(obj);    // Usually POST verb
         EmitData(createdObject);
@@ -110,7 +116,7 @@ adapters which are developed by different developers.
 
 ##### Input Metadata
 
-- One input per field in the ID.  Depending on the value of allowIdToBeOmited this is optional or required.
+- One input per field in the ID.  Depending on the value of allowIdToBeOmitted this is optional or required.
 
 ##### Pseudo-Code
 
@@ -170,7 +176,7 @@ adapters which are developed by different developers.
         }
       }
 
-      const foundObjects = GetObjectsByCritieria(uniqueCriteria);   // Usually GET verb
+      const foundObjects = GetObjectsByCriteria(uniqueCriteria);   // Usually GET verb
       if(foundObjects.length == 0) {
         if(allowZeroResults) {
           emitData({});
@@ -211,14 +217,14 @@ adapters which are developed by different developers.
     function lookupObjects(criteria) {
       switch(mode) {
         case 'fetchAll':
-          const results = GetObjectsByCritieria(criteria);
+          const results = GetObjectsByCriteria(criteria);
           if(results.length >= maxResultSize) {
             throw new Error('Too many results');
           }
           emitData({results: results});
           break;
         case 'emitIndividually':
-          const results = GetObjectsByCritieria(criteria);
+          const results = GetObjectsByCriteria(criteria);
           results.forEach(result => {
             emitData(result);
           }
@@ -561,7 +567,7 @@ It is possible to make batch variants for many of the above actions.  The batch 
 ##### Config Fields
 
 - Object Type (dropdown)
-- Start Time (string, optional): Indicates the begining time to start polling from (defaults to the begining of time)
+- Start Time (string, optional): Indicates the beginning time to start polling from (defaults to the begining of time)
 - End Time (string, optional): If provided, don’t fetch records modified after this time (defaults to never)
 - Size of Polling Page (optional; positive integer) Indicates the size of pages to be fetched. Defaults to 1000.
 - Single Page per Interval (dropdown/checkbox: yes/no; default yes) Indicates that if the number of changed records exceeds the maximum number of results in a page, instead of fetching the next page immediately, wait until the next flow start to fetch the next page.
