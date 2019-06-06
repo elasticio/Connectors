@@ -44,7 +44,7 @@ adapters which are developed by different developers.
 ##### Pseudo-Code
 
     function upsertObjectById(obj) {
-      // If the object's ID is split across more than one field, we should check 
+      // If the object's ID is split across more than one field, we should check
       // that either all ID fields are populated or that none are.  Otherwise we
       // should throw an exception.
 
@@ -75,17 +75,17 @@ adapters which are developed by different developers.
 
 ##### Input Metadata Changes
 
-- The fields that are part of the upsert criteria are marked as being part of the criteria.  If the criteria is something other than the ID, they should be marked as required.  
+- The fields that are part of the upsert criteria are marked as being part of the criteria.  If the criteria is something other than the ID, they should be marked as required.
   (There is a hypothetical edge case here where the system auto-populates the unique criteria)
 
 ##### Pseudo-Code
 
     function upsertObjectByUniqueCriteria(obj, uniqueCriteria) {
       // Ensure unique criteria are all populated (unless ID)
-      // If criteira is th the object's ID and it is split across more than one field, we should check 
+      // If criteira is th the object's ID and it is split across more than one field, we should check
       // that either all ID fields are populated or that none are.  Otherwise we
       // should throw an exception.
-    
+
       const objectsToUpdate = GetObjectsByCritieria(uniqueCriteria);   // Usually GET verb
       if(objectsToUpdate.length == 0) {
         const createdObject = CreateObject(obj);    // Usually POST verb
@@ -121,19 +121,19 @@ adapters which are developed by different developers.
           return;
         } else {
           throw new Error('No ID provided');
-        } 
+        }
       }
-      
-      try {  
+
+      try {
         const foundObject = GetObjectById(id);   // Usually GET verb
-        emitData(foundObject);    
+        emitData(foundObject);
       } catch (NotFoundException e) {
         if(allowZeroResults) {
           emitData({});
         } else {
           throw e;
         }
-      }        
+      }
     }
 
 ##### Output Data
@@ -167,9 +167,9 @@ adapters which are developed by different developers.
           return;
         } else {
           throw new Error('No unique criteria provided');
-        } 
+        }
       }
-      
+
       const foundObjects = GetObjectsByCritieria(uniqueCriteria);   // Usually GET verb
       if(foundObjects.length == 0) {
         if(allowZeroResults) {
@@ -223,7 +223,7 @@ adapters which are developed by different developers.
             emitData(result);
           }
           break;
-        case 'fetchPage': 
+        case 'fetchPage':
           const results = GetObjectsByCritieria(criteria, top: pageSize, skip: pageSize * pageNumber, orderBy: orderByTerms);
           emitData({results: results});
           break;
@@ -300,6 +300,79 @@ adapters which are developed by different developers.
       }
     }
 
+### Make Dumb Request
+
+*This action has not been fully standardized.*
+
+A simple action to allow integrators to assemble requests to be sent to the system.  The component should expose the parts that vary in a typical request.  The component should handle authentication and error reporting.
+
+### Lookup Set Of Objects By Unique Criteria
+Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.
+
+#### Iteration 1: Lookup Object By ID
+#### Iteration 2: Lookup Object By Unique Criteria
+
+##### Config Fields
+
+- Object Type (dropdown)
+- Iteration 2: Unique Criteria (dropdown)
+
+##### Input Metadata
+
+- An array where each item has one input per field in the ID.  If the ID is a single field, this input can be a simple array (as opposed to an array of objects).  Required.
+
+##### Pseudo-Code (Multi-Field ID Case)
+
+    function lookupSetOfObjects(itemUniqueCriteriaListToLookup) {
+      const results = itemUniqueCriteriaListToLookup.map(itemUniqueCriteria => {
+        const matchingItems = GetObjectsByCriteria(itemUniqueCriteria);
+        if(matchingItems.length != 1) {
+         throw new Error(`Lookup failed for ${itemUniqueCriteria}`);
+        }
+        return {
+          key: itemCriteria,
+          value: matchingItems[0]
+        }
+      })
+      EmitData(results);
+    }
+
+##### Pseudo-Code (Single-Field ID Case Where IN Operator is Supported)
+
+    function lookupSetOfObjects(itemIdsToLookup) {
+      if(itemIds.length = 0) {
+        EmitData({});
+        return;
+      }
+
+      const searchResults = FetchObjectsWhereIdIn(itemIdsToLookup);
+
+      const resultDictionary = {};
+      for each (let itemId of itemIdsToLookup) {
+        const matchingItems = searchResults.filter(result.Id = itemId);
+        if(matchingItems.length != 1) {
+          throw new Error(`Lookup failed for ${itemUniqueCriteria}`);
+        }
+        resultDictionary[itemId] = matchingItems[0];
+      }
+
+      EmitData(resultDictionary);
+    }
+
+##### Output Data
+
+- In the case of a single field criteria, a dictionary of the form `lookupCriteria: matchingItem`
+- In the case of multi-field criteria, an array where each item in the array has the form `{"key": lookupCriteria, "value": matchingItem}`
+
+##### Gotcha’s to lookout for
+
+- Make sure to Url Encode IDs appearing in HTTP urls
+
+##### Not defined now
+- Encode any IDs in URLs
+- Rebounds when an object is not found
+- There are different structures depending on the input structure
+
 ### Update Object
 
 - Similar to upsert object (both iteration 1 & 2) but:
@@ -341,17 +414,145 @@ Similar to upsert object but needed for the following cases:
     }
     ```
 
-### Execute Query or Statement in Query Language
+### Execute Query in Query Language
+Examples of this include constructing a query in SQL, Salesforce’s SOQL, etc. which return a table of data
 
-*This action has not been fully standardized.*
+##### Config Fields
 
-Examples of this include constructing a query in SQL, Salesforce’s SOQL, etc.
+- Behavior (dropdown: Fetch all, Emit Individually, Expect Single)
+- Query
+
+##### Input Metadata
+
+- For each parameterized variable in the query, there should be an input
+- If Behavior is Expect Single: a boolean input "Allow Zero Results"
+
+##### Pseudo-Code
+
+    function executeQuery(query, params, mode, allowZeroResults) {
+      switch(mode) {
+        case 'fetchAll':
+          const results = executeQueryOnSystem(query, params);
+          if(results.length >= maxResultSize) {
+            throw new Error('Too many results');
+          }
+          emitData({results: results});
+          break;
+        case 'emitIndividually':
+          const results = executeQueryOnSystem(query, params);
+          results.forEach(result => {
+            emitData(result);
+          }
+          break;
+        case 'expectSingle':
+          const results = executeQueryOnSystem(query, params);
+          if(results.length = 1) {
+            emitData(results[0]);
+          } else if(results.length = 0 && allowZeroResults) {
+            emitData({});
+          } else {
+            throw new Error('Incorrect Number of Results Found');
+          }
+          break;
+      }
+    }
+
+##### Output Data
+
+- Depends on mode
+
+### Execute Statement in Query Language
+Examples of this include constructing a statement in SQL, Salesforce’s SOQL, etc. which does not return results (other than execution statistics)
+
+##### Config Fields
+
+- Query
+
+##### Input Metadata
+
+- For each parameterized variable in the query, there should be an input
+
+##### Output Data
+
+- Execution statistics if available.  Otherwise an empty object as a result.
 
 ### Perform Action/Evaluate Function
 
 *This action has not been fully standardized.*
 
 Examples of this include sendEmail, calculatePrice, etc.
+
+### Assert Option(s) in Set(s)
+Given a field which can be set to a fixed list of options, ensure that this option exists in the list of selectable options.
+
+##### Config Fields
+
+- Object Type (Dropdown)
+
+##### Input Metadata
+
+For each field in the object type where the populated data is a dropdown/multi-select
+- One input which identifies the option value that needs to be in the set. Optional
+- Inputs for any data related to the option being added.  Not applicable for all systems
+Iteration 2: Have the above receive an array
+
+##### Pseudo-Code
+
+    let existingOptions = populateExistingOptions();
+
+    function assertOptionInSet(toAssert) {
+      const optionsDictionary = {};
+
+      for([field, option] of Object.entries(toAssert)) {
+        let existingOption = existingOptions[field][option.value];
+        if(existingOption && existingOption.additionalData = option.additionalData) {
+          // Nothing to do.  Publish info on the option
+          optionsDictionary[field] = existingOption;
+          break;
+        }
+
+        // Check for stale cached data
+        existingOptions = populateExistingOptions();
+        let existingOption = existingOptions[field][option.value];
+        if(existingOption && existingOption.additionalData = option.additionalData) {
+          // Nothing to do.  Publish info on the option
+          optionsDictionary[field] = existingOption;
+          break;
+        }
+
+        if(!existingOption) {
+          // Need to add option
+          const addedOption = AddOptionToSet(field, option.value, option.additionalData);
+          optionsDictionary[field] = addedOption;
+        } else {
+          // Need to update option
+          const updatedOption = UpdateOptionInSet(field, option.value, option.additionalData);
+          optionsDictionary[field] = updatedOption;
+        }
+      }
+
+      EmitData(optionsDictionary);
+    }
+
+##### Output Data
+
+- An object with all the options and associated data
+
+##### Gotcha’s to lookout for
+
+- This action can not be run in parallel
+
+### Merge Objects
+
+*This action has not been fully standardized.*
+
+Example: Contact merge.  There are usually two contacts, A and B with different IDs.  At the end of the merge, one ID remains with all external references to the other contact now pointing to the remaining contact.
+
+## Batch Actions
+
+*This set of actions has not been fully standardized.*
+
+It is possible to make batch variants for many of the above actions.  The batch action should perform operations which behave as the other options described above.
 
 ## Triggers
 
@@ -390,7 +591,7 @@ N/A
             lastModified <= maxTime
           ];
         }
-          
+
         const pageOfResults = GetPageOfResults({
           orderBy: Time ascending
           where: whereCondition,
@@ -408,7 +609,7 @@ N/A
         emitSnapshot(snapshot);
         if(singlePagePerInterval && hasMorePages) {
           return;
-        }          
+        }
       } while (hasMorePages)
       delete snapshot.pageNumber;
       snapshot.previousLastModified = lastSeenTime;
