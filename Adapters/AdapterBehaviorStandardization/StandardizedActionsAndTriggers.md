@@ -1,8 +1,8 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 06.06.2019
+**Version Publish Date:** 07.11.2019
 
-**Semantic Version of Document:** 2.2.0
+**Semantic Version of Document:** 2.2.1
 
 ## Table of Contents
 
@@ -11,7 +11,7 @@
     + [Lookup Object (at most 1)](#lookup-object-at-most-1)
     + [Lookup Objects (Plural)](#lookup-objects-plural)
     + [Delete Object](#delete-object)
-    + [Make Dumb Request](#make-dumb-request)
+    + [Make Raw Request](#make-raw-request)
     + [Lookup Set Of Objects By Unique Criteria](#lookup-set-of-objects-by-unique-criteria)
     + [Update Object](#update-object)
     + [Create Object](#create-object)
@@ -35,6 +35,9 @@ adapters which are developed by different developers.
 ## Actions
 
 ### Upsert Object
+
+##### Example Use Case
+I have some contact data that I want to add to my CRM.  I don't necessarily know if there is already a contact in my CRM, so I want the connector to be smart and determine if the data needs to be matched to an existing contact or added to a new contract.
 
 #### Iteration 1: Upsert Object By ID
 
@@ -105,6 +108,8 @@ adapters which are developed by different developers.
     }
 
 ### Lookup Object (at most 1)
+##### Example Use Case
+I have a contact who works for a company.  I have an ID or other distinguishing characteristic (e.g. legal name) of the company and I want to learn some detail about the company (e.g. number of employees).
 
 #### Iteration 1: Lookup Object By ID
 
@@ -192,6 +197,8 @@ adapters which are developed by different developers.
 
 
 ### Lookup Objects (Plural)
+##### Example Use Case
+I want to search my CRM for data based on some criteria.
 
 ##### Config Fields
 
@@ -250,6 +257,8 @@ adapters which are developed by different developers.
 - How to get total number of matching objects
 
 ### Delete Object
+##### Example Use Case
+I know the ID of a customer that I want to delete.
 
 #### Iteration 1: Delete Object By ID
 
@@ -306,14 +315,20 @@ adapters which are developed by different developers.
       }
     }
 
-### Make Dumb Request
+### Make RAW Request
 
 *This action has not been fully standardized.*
 
 A simple action to allow integrators to assemble requests to be sent to the system.  The component should expose the parts that vary in a typical request.  The component should handle authentication and error reporting.
 
+##### Example Use Case
+I'm a technically advanced user who wants to interact with a system in a way not permissible by the existing component actions but would like some simplification relative to using the REST component.
+
 ### Lookup Set Of Objects By Unique Criteria
 Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.
+
+##### Example Use Case
+I salesperson is responsible for 0 to N accounts.  I would like to look up a piece of information for each account associated with the salesperson.
 
 #### Iteration 1: Lookup Object By ID
 #### Iteration 2: Lookup Object By Unique Criteria
@@ -386,6 +401,9 @@ Given an array of information where each item in the array uniquely describes ex
   - The ID/other unique criteria is required
   - No other fields are required
 
+##### Example Use Case
+I want to update the price of a product based on its SKU but I don't want to look up other required attributes such as name since I know those have already been set and are not changing.
+
 ### Create Object
 
 Similar to upsert object but needed for the following cases:
@@ -393,6 +411,9 @@ Similar to upsert object but needed for the following cases:
 - Objects that can be created but can not be updated after creation (e.g. Invoices)
 - Cases where you want to create an object and its children
 - Cases where the id of the object includes information in the object (e.g. The ID of a sales line is the sales order ID + SKU).
+
+##### Example Use Case
+See above.
 
 ### Linking/Unlinking Objects
 
@@ -420,38 +441,46 @@ Similar to upsert object but needed for the following cases:
     }
     ```
 
-### Execute Query in Query Language
-Examples of this include constructing a query in SQL, Salesforce’s SOQL, etc. which return a table of data
+##### Example Use Case
+A student can be a participant in a class and a class can have many students.  Given a student ID and a course ID I want to enroll that student in that course.
+
+### Execute Query or Statement in Query Language
+Examples of this include constructing a query or statement in SQL, Salesforce’s SOQL, etc. Queries return a table of data when executed.  Statements do not reutrn results (other than execution statistics).
+
+##### Example Use Case
+Execute SQL query in SQL database
 
 ##### Config Fields
 
-- Behavior (dropdown: Fetch all, Emit Individually, Expect Single)
+- Query Emit Behavior (dropdown: Fetch all, Emit Individually, Expect Single)
 - Query
 
 ##### Input Metadata
 
 - For each parameterized variable in the query, there should be an input
-- If Behavior is Expect Single: a boolean input "Allow Zero Results"
+- If Emit Behavior is Expect Single: a boolean input "Allow Zero Results"
 
 ##### Pseudo-Code
 
     function executeQuery(query, params, mode, allowZeroResults) {
+      const results = executeQueryOrStatementOnSystem(query, params);
+      if(results is not QueryResultsTable) {
+        emitData(results || {});
+        return;
+      }
       switch(mode) {
         case 'fetchAll':
-          const results = executeQueryOnSystem(query, params);
           if(results.length >= maxResultSize) {
             throw new Error('Too many results');
           }
           emitData({results: results});
           break;
         case 'emitIndividually':
-          const results = executeQueryOnSystem(query, params);
           results.forEach(result => {
             emitData(result);
           }
           break;
         case 'expectSingle':
-          const results = executeQueryOnSystem(query, params);
           if(results.length = 1) {
             emitData(results[0]);
           } else if(results.length = 0 && allowZeroResults) {
@@ -465,22 +494,8 @@ Examples of this include constructing a query in SQL, Salesforce’s SOQL, etc. 
 
 ##### Output Data
 
-- Depends on mode
-
-### Execute Statement in Query Language
-Examples of this include constructing a statement in SQL, Salesforce’s SOQL, etc. which does not return results (other than execution statistics)
-
-##### Config Fields
-
-- Query
-
-##### Input Metadata
-
-- For each parameterized variable in the query, there should be an input
-
-##### Output Data
-
-- Execution statistics if available.  Otherwise an empty object as a result.
+- If Query: Depends on mode
+- If Statement: Execution statistics if available.  Otherwise an empty object as a result.
 
 ### Perform Action/Evaluate Function
 
@@ -490,6 +505,9 @@ Examples of this include sendEmail, calculatePrice, etc.
 
 ### Assert Option(s) in Set(s)
 Given a field which can be set to a fixed list of options, ensure that this option exists in the list of selectable options.
+
+##### Example Use Case
+You run a store where each product has a color.  The list of colors are finite (e.g. red, green, blue).  One day, you decide to add a new color option yellow.
 
 ##### Config Fields
 
@@ -563,6 +581,8 @@ It is possible to make batch variants for many of the above actions.  The batch 
 ## Triggers
 
 ### Get New and Updated Objects Polling
+##### Example Use Case
+I want to learn about changes to contacts in my CRM when they happen.
 
 ##### Config Fields
 
