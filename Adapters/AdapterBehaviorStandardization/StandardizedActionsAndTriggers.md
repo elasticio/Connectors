@@ -625,6 +625,7 @@ In order for the bellow polling algorithm to work, all of the following must be 
 3. Compare the timestamps of the last and second last items on the page.  If they are different, store the timestamp of the second last record of the page and don't emit the last record.
 4. If the timestamps are the same, then store that timestamp and the primary key of the last item.  On the next iteration fetch page where the timestamps are equal and primary key is larger than last seen item.
 
+```
     function getObjectsPolling(cfg, snapshot) {
       const pollingField = cfg.timeStampFieldToPollOn;
       let attemptMorePages = !cfg.singlePagePerInterval;
@@ -684,6 +685,7 @@ In order for the bellow polling algorithm to work, all of the following must be 
         } 
       }
     }
+```
 
 ##### Output Data
 
