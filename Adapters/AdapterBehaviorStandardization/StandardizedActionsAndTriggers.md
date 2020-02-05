@@ -189,7 +189,7 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
         } else if(allowZeroResults) {
           emitData({});
         } else {
-          throw e;
+          throw new Error('Not found');
         }
       } else if (foundObjects.length ==1) {
         emitData(foundObjects[0]);
@@ -334,7 +334,7 @@ Additional Options to Consider:
 I'm a technically advanced user who wants to interact with a system in a way not permissible by the existing component actions but would like some simplification relative to using the REST component.
 
 ### Lookup Set Of Objects By Unique Criteria
-Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.  If any of the objects are not found it makes sense to rebound.
+Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.  If any of the objects are not found then it indicates a logic problem in the integration.
 
 ##### Example Use Case
 I salesperson is responsible for 0 to N accounts (N being reasonably small).  I would like to look up a piece of information for each account associated with the salesperson.
