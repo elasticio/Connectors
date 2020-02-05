@@ -110,7 +110,7 @@ I have some contact data that I want to add to my CRM.  I don't necessarily know
 
 ### Lookup Object (at most 1)
 ##### Example Use Case
-I have a contact who works for a company.  I have an ID or other distinguishing characteristic (e.g. legal name) of the company and I want to learn some detail about the company (e.g. number of employees).
+I have a contact who works for a company.  I have an ID or other distinguishing characteristic (e.g. legal name) of the company and I want to learn some detail about the company (e.g. country of company).
 
 #### Iteration 1: Lookup Object By ID
 
@@ -118,7 +118,8 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
 
 - Object Type (dropdown)
 - Allow ID to be omitted (dropdown/checkbox: yes/no); when selected, the ID field becomes optional, otherwise it is a required field
-- Allow zero results (dropdown/checkbox: yes/no); hen selected, if zero results are returned, the empty object `{}` is emitted, otherwise typically an error would be thrown. If zero results are not allowed, in many cases it makes sense to apply some rebounds to wait for it to exists.
+- Allow zero results (dropdown/checkbox: yes/no); When selected, if zero results are returned, the empty object `{}` is emitted, otherwise typically an error would be thrown. 
+- Wait for object to exist (dropdown/checkbox: yes/no); When selected, if no results are found, apply rebounds and wait until the object exits.
 - Linked objects to populate (optional, multi-select dropdown).  Select which linked objects to fetch if supported by the API.
 
 ##### Input Metadata
@@ -138,13 +139,15 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
       }
 
       try {
-        const foundObject = GetObjectById(id);   // Usually GET verb
+        const foundObject = GetObjectById(id, linkedObjectsToPopulate);   // Usually GET verb
         emitData(foundObject);
       } catch (NotFoundException e) {
-        if(allowZeroResults) {
+        if(waitForObjectToExist && notAllReboundsExhausted) {
+          emitRebound({});
+        } else if(allowZeroResults) {
           emitData({});
         } else {
-          emitRebound();
+          throw e;
         }
       }
     }
@@ -179,12 +182,14 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
         }
       }
 
-      const foundObjects = GetObjectsByCriteria(uniqueCriteria);   // Usually GET verb
+      const foundObjects = GetObjectsByCriteria(uniqueCriteria, linkedObjectsToPopulate);   // Usually GET verb
       if(foundObjects.length == 0) {
-        if(allowZeroResults) {
+        if(waitForObjectToExist && notAllReboundsExhausted) {
+          emitRebound({});
+        } else if(allowZeroResults) {
           emitData({});
         } else {
-          emitRebound();
+          throw e;
         }
       } else if (foundObjects.length ==1) {
         emitData(foundObjects[0]);
@@ -223,20 +228,20 @@ I want to search my CRM for data based on some criteria.
     function lookupObjects(criteria) {
       switch(mode) {
         case 'fetchAll':
-          const results = GetObjectsByCriteria(criteria);
+          const results = GetObjectsByCriteria(criteria, linkedObjectsToPopulate);
           if(results.length >= maxResultSize) {
             throw new Error('Too many results');
           }
           emitData({results: results});
           break;
         case 'emitIndividually':
-          const results = GetObjectsByCriteria(criteria);
+          const results = GetObjectsByCriteria(criteria, linkedObjectsToPopulate);
           results.forEach(result => {
             emitData(result);
           }
           break;
         case 'fetchPage':
-          const results = GetObjectsByCritieria(criteria, top: pageSize, skip: pageSize * pageNumber, orderBy: orderByTerms);
+          const results = GetObjectsByCritieria(criteria, top: pageSize, skip: pageSize * pageNumber, orderBy: orderByTerms, linkedObjectsToPopulate);
           emitData({results: results});
           break;
       }
@@ -254,6 +259,7 @@ I want to search my CRM for data based on some criteria.
 
 - Order of operations in multiple terms
 - How to get total number of matching objects
+- How to handle variable number of search terms (perhaps integrator mode?)
 
 ### Delete Object
 ##### Example Use Case
@@ -320,6 +326,10 @@ I know the ID of a customer that I want to delete.
 
 A simple action to allow integrators to assemble requests to be sent to the system.  The component should expose the parts that vary in a typical request.  The component should handle authentication and error reporting.
 
+Additional Options to Consider:
+* Consider that it may make sense to turn off error reporting & to return things like the HTTP status code & headers
+* Consider that it may make sense to allow the option to make a series of sequential array requests.
+
 ##### Example Use Case
 I'm a technically advanced user who wants to interact with a system in a way not permissible by the existing component actions but would like some simplification relative to using the REST component.
 
@@ -327,7 +337,7 @@ I'm a technically advanced user who wants to interact with a system in a way not
 Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.  If any of the objects are not found it makes sense to rebound.
 
 ##### Example Use Case
-I salesperson is responsible for 0 to N accounts.  I would like to look up a piece of information for each account associated with the salesperson.
+I salesperson is responsible for 0 to N accounts (N being reasonably small).  I would like to look up a piece of information for each account associated with the salesperson.
 
 #### Iteration 1: Lookup Object By ID
 #### Iteration 2: Lookup Object By Unique Criteria
@@ -336,6 +346,7 @@ I salesperson is responsible for 0 to N accounts.  I would like to look up a pie
 
 - Object Type (dropdown)
 - Linked objects to populate (optional, multi-select dropdown).  Select which linked objects to fetch if supported by the API.
+- Wait for object to exist (dropdown/checkbox: yes/no); When selected, if no results are found, apply rebounds and wait until the object exits.
 - Iteration 2: Unique Criteria (dropdown)
 
 ##### Input Metadata
@@ -346,8 +357,11 @@ I salesperson is responsible for 0 to N accounts.  I would like to look up a pie
 
     function lookupSetOfObjects(itemUniqueCriteriaListToLookup) {
       const results = itemUniqueCriteriaListToLookup.map(itemUniqueCriteria => {
-        const matchingItems = GetObjectsByCriteria(itemUniqueCriteria);
+        const matchingItems = GetObjectsByCriteria(itemUniqueCriteria, linkedObjectsToPopulate);
         if(matchingItems.length != 1) {
+         if(!waitForObjectToExist) {
+           throw new NotFoundError();
+         }
          emitRebound({});
          return;     
         }
@@ -367,12 +381,15 @@ I salesperson is responsible for 0 to N accounts.  I would like to look up a pie
         return;
       }
 
-      const searchResults = FetchObjectsWhereIdIn(itemIdsToLookup);
+      const searchResults = FetchObjectsWhereIdIn(itemIdsToLookup, linkedObjectsToPopulate);
 
       const resultDictionary = {};
       for each (let itemId of itemIdsToLookup) {
         const matchingItems = searchResults.filter(result.Id = itemId);
         if(matchingItems.length != 1) {
+          if(!waitForObjectToExist) {
+            throw new NotFoundError();
+          }
           emitRebound({});
           return;
         }
@@ -398,7 +415,7 @@ I salesperson is responsible for 0 to N accounts.  I would like to look up a pie
   - We will not create the object if it does not exist
   - The ID/other unique criteria is required
   - No other fields are required
-If the object is not found, then rebounds should be done.
+If the object is not found, then rebounds should be done based on the rebound option.
 
 ##### Example Use Case
 I want to update the price of a product based on its SKU but I don't want to look up other required attributes such as name since I know those have already been set and are not changing.
@@ -421,7 +438,7 @@ See above.
   - the types of the two objects
   - two sets of unique criteria which describe the two objects
   - Information about the relationship (e.g. if assigning user to company membership, identify the role of the user)
-- Rebounds should be emitted if results aren't found.
+- Ther should be an option to emit rebounds should be emitted if results aren't found.
 
     ```
     function linkObjects(obj1, obj2, linkMetadata) {
@@ -429,6 +446,9 @@ See above.
       if (matchingObjects1.length > 1) {
         throw new Error('Too many found.');
       } else if (matchingObjects1.length == 0) {
+        if(!waitForObjectToExist) {
+          throw new NotFoundError();
+        }
         emitRebound();
         return;      
       }    
@@ -438,6 +458,9 @@ See above.
       if (matchingObjects2.length > 1) {
         throw new Error('Too many found.');
       } else if (matchingObjects2.length == 0) {
+        if(!waitForObjectToExist) {
+          throw new NotFoundError();
+        }
         emitRebound();
         return;      
       }
