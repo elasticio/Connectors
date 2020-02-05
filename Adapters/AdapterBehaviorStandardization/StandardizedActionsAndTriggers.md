@@ -1,8 +1,8 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 09.20.2019
+**Version Publish Date:** 05.02.2020
 
-**Semantic Version of Document:** 2.3.0
+**Semantic Version of Document:** 2.3.1
 
 ## Table of Contents
 
@@ -117,8 +117,8 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
 ##### Config Fields
 
 - Object Type (dropdown)
-- Allow ID to be omitted (dropdown/checkbox: yes/no)
-- Allow zero results (dropdown/checkbox: yes/no).  If zero results are not allowed, in many cases it makes sense to apply some rebounds to wait for it to exists.
+- Allow ID to be omitted (dropdown/checkbox: yes/no); when selected, the ID field becomes optional, otherwise it is a required field
+- Allow zero results (dropdown/checkbox: yes/no); hen selected, if zero results are returned, the empty object `{}` is emitted, otherwise typically an error would be thrown. If zero results are not allowed, in many cases it makes sense to apply some rebounds to wait for it to exists.
 - Linked objects to populate (optional, multi-select dropdown).  Select which linked objects to fetch if supported by the API.
 
 ##### Input Metadata
