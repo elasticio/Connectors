@@ -1,6 +1,6 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 05.02.2020
+**Version Publish Date:** 18.02.2020
 
 **Semantic Version of Document:** 2.3.1
 
@@ -438,7 +438,7 @@ See above.
   - the types of the two objects
   - two sets of unique criteria which describe the two objects
   - Information about the relationship (e.g. if assigning user to company membership, identify the role of the user)
-- Ther should be an option to emit rebounds should be emitted if results aren't found.
+- There should be an option to emit rebounds should be emitted if results aren't found.
 
     ```
     function linkObjects(obj1, obj2, linkMetadata) {
@@ -474,7 +474,7 @@ See above.
 A student can be a participant in a class and a class can have many students.  Given a student ID and a course ID I want to enroll that student in that course.
 
 ### Execute Query or Statement in Query Language
-Examples of this include constructing a query or statement in SQL, Salesforce’s SOQL, etc. Queries return a table of data when executed.  Statements do not reutrn results (other than execution statistics).
+Examples of this include constructing a query or statement in SQL, Salesforce’s SOQL, etc. Queries return a table of data when executed.  Statements do not return results (other than execution statistics).
 
 ##### Example Use Case
 Execute SQL query in SQL database
@@ -616,7 +616,7 @@ I want to learn about changes to contacts in my CRM when they happen.
 ##### Config Fields
 
 - Object Type (dropdown)
-- Start Time (string, optional): Indicates the beginning time to start polling from (defaults to the begining of time)
+- Start Time (string, optional): Indicates the beginning time to start polling from (defaults to the beginning of time)
 - End Time (string, optional): If provided, don’t fetch records modified after this time (defaults to never)
 - Size of Polling Page (optional; positive integer) Indicates the size of pages to be fetched. Defaults to 1000.
 - Single Page per Interval (dropdown/checkbox: yes/no; default yes) Indicates that if the number of changed records exceeds the maximum number of results in a page, instead of fetching the next page immediately, wait until the next flow start to fetch the next page.
