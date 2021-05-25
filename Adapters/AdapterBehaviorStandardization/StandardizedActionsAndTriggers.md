@@ -27,6 +27,9 @@
   * [Get Recently Deleted Objects Polling](#get-recently-deleted-objects-polling)
   * [Event Subscription](#event-subscription)
   * [Bulk Extract](#bulk-extract)
+- [Attachments](#attachments)
+  * [List of Attachment Meta-Information Fields](#list-of-attachment-meta-information-fields)
+  * [Attachment Examples](#attachment-examples)
 
 It is important to define common rules on how an adapter responds to changes
 and performs actions on generic domain objects.  If adapters follow
