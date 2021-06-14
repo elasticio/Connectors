@@ -1,8 +1,8 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 04.06.2021
+**Version Publish Date:** 14.06.2021
 
-**Semantic Version of Document:** 2.5.1
+**Semantic Version of Document:** 2.5.2
 
 ## Table of Contents
 
@@ -121,8 +121,10 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
 
 - Object Type (dropdown)
 - Allow ID to be omitted (dropdown/checkbox: yes/no); when selected, the ID field becomes optional, otherwise it is a required field
-- Allow zero results (dropdown/checkbox: yes/no); When selected, if zero results are returned, the empty object `{}` is emitted, otherwise typically an error would be thrown.
-- Wait for object to exist (dropdown/checkbox: yes/no); When selected, if no results are found, apply rebounds and wait until the object exits.
+- Not Found Behavior (dropdown: Allow Zero Results, Wait for Object to Exist or Expect Object to Be Present): 
+    - If **Allow Zero Results** is selected and zero matching results are found in the system, then the empty object `{}` is emitted
+    - If **Wait for Object to Exist** is selected and zero matching results are found in the system, apply rebounds and wait until the object exits.
+    - If **Expect Object to Be Present** is selected and zero matching results are found in the system, an error should be thrown.
 - Linked objects to populate (optional, multi-select dropdown).  Select which linked objects to fetch if supported by the API.
 
 ##### Input Metadata
@@ -145,7 +147,7 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
         const foundObject = GetObjectById(id, linkedObjectsToPopulate);   // Usually GET verb
         emitData(foundObject);
       } catch (NotFoundException e) {
-        if(waitForObjectToExist && notAllReboundsExhausted) {
+        if(waitForObjectToExist) {
           emitRebound({});
         } else if(allowZeroResults) {
           emitData({});
@@ -187,7 +189,7 @@ I have a contact who works for a company.  I have an ID or other distinguishing 
 
       const foundObjects = GetObjectsByCriteria(uniqueCriteria, linkedObjectsToPopulate);   // Usually GET verb
       if(foundObjects.length == 0) {
-        if(waitForObjectToExist && notAllReboundsExhausted) {
+        if(waitForObjectToExist) {
           emitRebound({});
         } else if(allowZeroResults) {
           emitData({});
