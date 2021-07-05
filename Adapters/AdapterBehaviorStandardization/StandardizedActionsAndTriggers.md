@@ -1,8 +1,8 @@
 # Descriptions of standardized actions or triggers
 
-**Version Publish Date:** 04.06.2021
+**Version Publish Date:** 05.07.2021
 
-**Semantic Version of Document:** 2.5.1
+**Semantic Version of Document:** 2.6.0
 
 ## Table of Contents
 
@@ -11,7 +11,7 @@
   * [Lookup Object (at most 1)](#lookup-object-at-most-1)
   * [Lookup Objects (Plural)](#lookup-objects-plural)
   * [Delete Object](#delete-object)
-  * [Make RAW Request](#make-raw-request)
+  * [Make Raw Request](#make-raw-request)
   * [Lookup Set Of Objects By Unique Criteria](#lookup-set-of-objects-by-unique-criteria)
   * [Update Object](#update-object)
   * [Create Object](#create-object)
@@ -317,18 +317,23 @@ I know the ID of a customer that I want to delete.
       }
     }
 
-### Make RAW Request
-
-*This action has not been fully standardized.*
-
-A simple action to allow integrators to assemble requests to be sent to the system.  The component should expose the parts that vary in a typical request.  The component should handle authentication and error reporting.
-
-Additional Options to Consider:
-* Consider that it may make sense to turn off error reporting & to return things like the HTTP status code & headers
-* Consider that it may make sense to allow the option to make a series of sequential array requests.
+### Make Raw Request
+A simple action to allow integrators to assemble requests to be sent to the system.  The component should expose the parts that vary in a typical request.  The component should handle authentication and error reporting. It can optionally handle paging. In some cases, it may make sense to allow the option to make a series of sequential array requests.
 
 ##### Example Use Case
 I'm a technically advanced user who wants to interact with a system in a way not permissible by the existing component actions but would like some simplification relative to using the REST component.
+
+##### Config Fields
+* Don't throw error on 404 responses (checkbox, optional): If checked, then the component should treat 404 response codes as success.
+
+##### Input Metadata
+* Url (string, required): Path of the resource relative to the URL base.
+* Method (string enum (Enum options are system specific.), required): HTTP Verb for the request. 
+* Request Body (object, optional): Body of the request to send
+
+##### Output Data
+* Status Code (integer, required): HTTP status code of the request
+* Response Body (object, optional): JSON representation of the response body from the request
 
 ### Lookup Set Of Objects By Unique Criteria
 Given an array of information where each item in the array uniquely describes exactly one object.  It can be assumed that the array is short enough to reasonably fit the results in a single message.  If any of the objects are not found then it indicates a logic problem in the integration.
